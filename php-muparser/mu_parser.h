@@ -1,0 +1,7 @@
+#ifndef __PHP_MUPARSER_H__
+#define __PHP_MUPARSER_H__
+
+MUPARSER_STARTUP_FUNCTION(parser);
+MUPARSER_SHUTDOWN_FUNCTION(parser);
+
+#endif
