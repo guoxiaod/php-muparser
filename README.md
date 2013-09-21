@@ -12,36 +12,36 @@ muparser php extension
 
 ### Usage
 
-  <?php
+    <?php
 
-  use mu\Parser;
+    use mu\Parser;
 
-  $parser = new Parser();
-  $arr = array(
-    "a" => 1,
-    "b" => 2,
-    "c" => 3
-    );
-  $parser->DefineVars($arr);
+    $parser = new Parser();
+    $arr = array(
+            "a" => 1,
+            "b" => 2,
+            "c" => 3
+            );
+    $parser->DefineVars($arr);
 
-  $parser->SetExpr("a=b+c,b=a+c,c=a+b");
+    $parser->SetExpr("a=b+c,b=a+c,c=a+b");
 
-  try {
-     $n = 0;
+    try {
+        $n = 0;
 
-     echo "\n====result before eval====\n";
-     var_export($result);
+        echo "\n====result before eval====\n";
+        var_export($result);
 
-     $result = $parser->Eval($n);
+        $result = $parser->Eval($n);
 
-     echo "\n====result after eval====\n";
-     var_export($result);
-     
-     echo "\n====arr====\n";
-     var_export($arr);
+        echo "\n====result after eval====\n";
+        var_export($result);
 
-     echo "\n====var====\n";
-     var_export($parser->GetVar());
-  } catch (ParserException $e) {
-     echo $e, "\n"; 
-  }
+        echo "\n====arr====\n";
+        var_export($arr);
+
+        echo "\n====var====\n";
+        var_export($parser->GetVar());
+    } catch (ParserException $e) {
+        echo $e, "\n"; 
+    }
