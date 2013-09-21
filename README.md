@@ -29,19 +29,24 @@ muparser php extension
     try {
         $n = 0;
 
-        echo "\n====result before eval====\n";
-        var_export($result);
+        echo "\n====arr before eval====\n";
+        var_export($arr);
 
         $result = $parser->Eval($n);
 
-        echo "\n====result after eval====\n";
+        echo "\n====result====\n";
         var_export($result);
 
-        echo "\n====arr====\n";
+        echo "\n====arr after eval====\n";
         var_export($arr);
 
-        echo "\n====var====\n";
+        echo "\n====get var====\n";
         var_export($parser->GetVar());
     } catch (ParserException $e) {
         echo $e, "\n"; 
     }
+
+### Links
+
+    http://muparser.beltoforion.de/
+    https://code.google.com/p/muparser/
