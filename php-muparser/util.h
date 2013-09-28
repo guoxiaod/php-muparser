@@ -31,6 +31,11 @@ typedef struct _mu_wrapper {
     void * ptr;
 } mu_wrapper;
 
+typedef struct _mu_callback {
+    zend_fcall_info fci;
+    zend_fcall_info_cache fci_cache;
+} mu_callback;
+
 mu_wrapper * mup_create_wrapper(zend_class_entry * ce TSRMLS_DC);
 
 void * mup_extract_wrapper(zval * z TSRMLS_DC);

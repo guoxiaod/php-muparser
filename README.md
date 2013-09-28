@@ -50,3 +50,4 @@ muparser php extension
 
     http://muparser.beltoforion.de/
     https://code.google.com/p/muparser/
+    http://code.google.com/p/muparserx/wiki/Introduction#Postfix_operators

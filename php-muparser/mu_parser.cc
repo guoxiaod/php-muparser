@@ -2,7 +2,6 @@
 #include "config.h"
 #endif
 
-
 #include "php.h"
 #include "SAPI.h"
 #include "php_muparser.h"
@@ -18,6 +17,13 @@ static zend_class_entry * mu_parser_base_ce = NULL;
 
 static zend_object_handlers _mu_parser_handlers;
 
+
+static void _force_val_to_double(ParserBase * parser) {
+    varmap_type m = parser->GetVar();
+    for(varmap_type::iterator i = m.begin(); i != m.end(); i++) {
+        convert_to_double_ex((zval**)&i->second);  
+    }
+}
 
 template <typename T>
 static void mup_destroy_mu_parser_object(void * p TSRMLS_DC) {
@@ -35,7 +41,10 @@ static zend_object_value mup_create_mu_parser_object(zend_class_entry * ce TSRML
     zend_object_value result;
 
     mu_wrapper * wrapper = mup_create_wrapper(ce);
-    //wrapper->ptr = new T();
+
+    MUP_TRY
+        wrapper->ptr = new T();
+    MUP_CATCH_AND_END_TRY
 
     result.handle = zend_objects_store_put(&wrapper->obj, NULL, (zend_objects_free_object_storage_t) mup_destroy_mu_parser_object<T>, NULL TSRMLS_CC);
     result.handlers = &_mu_parser_handlers;
@@ -272,7 +281,7 @@ ZEND_END_ARG_INFO()
 PHP_METHOD(parser, __construct) {
     MUP_CHECK_PARAM(0, 0);
 
-    //MUP_GET_OBJ(Parser, _this);
+    //MUP_GET_OBJ(Parser, _self);
 
     mu_wrapper * _r = static_cast<mu_wrapper*>(mup_extract_wrapper(getThis() TSRMLS_CC));
 
@@ -281,7 +290,7 @@ PHP_METHOD(parser, __construct) {
         RETURN_NULL();
     }
     MUP_TRY
-        _r->ptr = (void *) new Parser();
+        //_r->ptr = (void *) new Parser();
     MUP_CATCH_AND_END_TRY
 }
 PHP_METHOD(parser, __destruct) {
@@ -290,38 +299,38 @@ PHP_METHOD(parser, __destruct) {
 PHP_METHOD(parser, InitCharSets) { 
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _this = NULL;
-    MUP_GET_OBJ(Parser, _this);
+    Parser * _self = NULL;
+    MUP_GET_OBJ(Parser, _self);
 
-    _this->InitCharSets();
+    _self->InitCharSets();
 }
 PHP_METHOD(parser, InitFun) {
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _this = NULL;
-    MUP_GET_OBJ(Parser, _this);
+    Parser * _self = NULL;
+    MUP_GET_OBJ(Parser, _self);
 
     MUP_TRY
-    _this->InitFun();
+    _self->InitFun();
     MUP_CATCH_AND_END_TRY
 }
 PHP_METHOD(parser, InitConst) {
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _this = NULL;
-    MUP_GET_OBJ(Parser, _this);
+    Parser * _self = NULL;
+    MUP_GET_OBJ(Parser, _self);
 
     MUP_TRY
-    _this->InitConst();
+    _self->InitConst();
     MUP_CATCH_AND_END_TRY
 }
 PHP_METHOD(parser, InitOprt) {
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _this = NULL;
-    MUP_GET_OBJ(Parser, _this);
+    Parser * _self = NULL;
+    MUP_GET_OBJ(Parser, _self);
 
-    _this->InitOprt();
+    _self->InitOprt();
 }
 PHP_METHOD(parser, OnDetectVar) {
     // TODO
@@ -334,14 +343,14 @@ PHP_METHOD(parser, Diff) {
     if(zend_parse_parameters(argc TSRMLS_CC, "zdd", &a_Var, &a_fPos, &a_fEpsilon) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
-    Parser * _this = NULL;
-    MUP_GET_OBJ(Parser, _this);
+    Parser * _self = NULL;
+    MUP_GET_OBJ(Parser, _self);
 
     if(Z_TYPE_P(a_Var) != IS_DOUBLE) {
         convert_to_double_ex(&a_Var);
     }
 
-    value_type ret = _this->Diff(&Z_DVAL_P(a_Var), a_fPos, a_fEpsilon);
+    value_type ret = _self->Diff(&Z_DVAL_P(a_Var), a_fPos, a_fEpsilon);
 
     RETURN_DOUBLE(ret);
 }
@@ -359,22 +368,23 @@ PHP_METHOD(parser_base, EnableDebugDump) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->EnableDebugDump(bDumpCmd, bDumpStack);
+    _self->EnableDebugDump(bDumpCmd, bDumpStack);
 }
 PHP_METHOD(parser_base, Eval) {
     int argc = ZEND_NUM_ARGS();
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     if(argc == 0) {
         value_type ret;
     
         MUP_TRY
-            ret =  _this->Eval(); 
+            _force_val_to_double(_self);
+            ret =  _self->Eval(); 
         MUP_CATCH_AND_END_TRY
 
         RETURN_DOUBLE(ret);
@@ -393,7 +403,8 @@ PHP_METHOD(parser_base, Eval) {
         value_type * ret;
 
         MUP_TRY
-            ret = _this->Eval(n);
+            _force_val_to_double(_self);
+            ret = _self->Eval(n);
         MUP_CATCH
             MUP_THROW_EXCEPTION
             RETURN_NULL();
@@ -426,13 +437,14 @@ PHP_METHOD(parser_base, EvalByBulk) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     value_type * results = (value_type*) emalloc(sizeof(value_type) * nBulkSize);
 
     MUP_TRY
-        _this->Eval(results, nBulkSize);
+        _force_val_to_double(_self);
+        _self->Eval(results, nBulkSize);
     MUP_CATCH
         MUP_THROW_EXCEPTION
         efree(results);
@@ -453,10 +465,10 @@ PHP_METHOD(parser_base, EvalByBulk) {
 PHP_METHOD(parser_base, GetNumResults) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    long ret = _this->GetNumResults();
+    long ret = _self->GetNumResults();
 
     RETURN_LONG(ret);
 }
@@ -471,11 +483,11 @@ PHP_METHOD(parser_base, SetExpr) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     MUP_TRY
-    _this->SetExpr(sExpr);
+    _self->SetExpr(sExpr);
     MUP_CATCH_AND_END_TRY
 } 
 PHP_METHOD(parser_base, SetVarFactory) {
@@ -489,14 +501,14 @@ PHP_METHOD(parser_base, SetVarFactory) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     // TODO
 
     facfun_type func = NULL;
 
-    _this->SetVarFactory(func, NULL);
+    _self->SetVarFactory(func, NULL);
 }
 PHP_METHOD(parser_base, SetDecSep) { 
     int argc = ZEND_NUM_ARGS();
@@ -508,10 +520,10 @@ PHP_METHOD(parser_base, SetDecSep) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->SetDecSep(* cDecSep);
+    _self->SetDecSep(* cDecSep);
 } 
 PHP_METHOD(parser_base, SetThousandsSep) {
     int argc = ZEND_NUM_ARGS();
@@ -523,18 +535,18 @@ PHP_METHOD(parser_base, SetThousandsSep) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->SetThousandsSep(*cThousandsSep);
+    _self->SetThousandsSep(*cThousandsSep);
 }
 PHP_METHOD(parser_base, ResetLocale) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ResetLocale();
+    _self->ResetLocale();
 }
 
 
@@ -548,10 +560,10 @@ PHP_METHOD(parser_base, EnableOptimizer) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->EnableOptimizer(bIsOn);
+    _self->EnableOptimizer(bIsOn);
 }
 PHP_METHOD(parser_base, EnableBuiltInOprt) {
     int argc = ZEND_NUM_ARGS();
@@ -563,19 +575,19 @@ PHP_METHOD(parser_base, EnableBuiltInOprt) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->EnableBuiltInOprt(bIsOn);
+    _self->EnableBuiltInOprt(bIsOn);
 }
 
 PHP_METHOD(parser_base, HasBuiltInOprt) { 
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    bool ret = _this->HasBuiltInOprt();
+    bool ret = _self->HasBuiltInOprt();
 
     RETURN_BOOL(ret);
 }
@@ -589,14 +601,14 @@ PHP_METHOD(parser_base, AddValIdent) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     // TODO
 
     identfun_type func = NULL;
 
-    _this->AddValIdent(func);
+    _self->AddValIdent(func);
 }
 
 PHP_METHOD(parser_base, DefineFun) {
@@ -613,14 +625,17 @@ PHP_METHOD(parser_base, DefineFun) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * self = NULL;
+    MUP_GET_OBJ(ParserBase, self);
 
     // TODO
-    fun_type0 func;
-
     MUP_TRY
-    _this->DefineFun(a_strName, func, a_bAllowOpt);
+    switch(fci.param_count) {
+        case 0:
+            //self->DefineFun(a_strName, p, (bool)a_bAllowOpt);
+            break;
+    
+    }
     MUP_CATCH_AND_END_TRY
 }
 PHP_METHOD(parser_base, DefineOprt) {
@@ -640,15 +655,15 @@ PHP_METHOD(parser_base, DefineOprt) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     // TODO
 
     fun_type2 func = NULL;
 
     MUP_TRY
-    _this->DefineOprt(a_sName, func, a_iPrec, (EOprtAssociativity) a_eAssoc, a_bAllowOpt);
+    _self->DefineOprt(a_sName, func, a_iPrec, (EOprtAssociativity) a_eAssoc, a_bAllowOpt);
     MUP_CATCH_AND_END_TRY
 }
 
@@ -662,8 +677,8 @@ PHP_METHOD(parser_base, DefineConst) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     HashPosition pos;
     HashTable * kv;
@@ -682,13 +697,13 @@ PHP_METHOD(parser_base, DefineConst) {
 
                 convert_to_double_ex(_val);
 
-                _this->DefineConst(_key, Z_DVAL_PP(_val));
+                _self->DefineConst(_key, Z_DVAL_PP(_val));
             }
             break;
         case IS_STRING:
             if(argc == 2) {
                 convert_to_double_ex(&val);
-                _this->DefineConst(Z_STRVAL_P(key), Z_DVAL_P(val));
+                _self->DefineConst(Z_STRVAL_P(key), Z_DVAL_P(val));
             } else {
                 WRONG_PARAM_COUNT;
             }
@@ -711,8 +726,8 @@ PHP_METHOD(parser_base, DefineStrConst) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     HashPosition pos;
     HashTable * kv;
@@ -732,13 +747,13 @@ PHP_METHOD(parser_base, DefineStrConst) {
 
                 convert_to_string_ex(_val);
 
-                _this->DefineStrConst(_key, Z_STRVAL_PP(_val));
+                _self->DefineStrConst(_key, Z_STRVAL_PP(_val));
             }
             break;
         case IS_STRING:
             if(argc == 2) {
                 convert_to_string_ex(&val);
-                _this->DefineStrConst(Z_STRVAL_P(key), Z_STRVAL_P(val));
+                _self->DefineStrConst(Z_STRVAL_P(key), Z_STRVAL_P(val));
             } else {
                 WRONG_PARAM_COUNT;
             }
@@ -764,13 +779,13 @@ PHP_METHOD(parser_base, DefineVar) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     convert_to_double_ex(&val);
 
     MUP_TRY
-        _this->DefineVar(key, &Z_DVAL_P(val));
+        _self->DefineVar(key, &Z_DVAL_P(val));
     MUP_CATCH_AND_END_TRY
 }
 /** }}} **/
@@ -784,8 +799,8 @@ PHP_METHOD(parser_base, DefineVars) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     HashTable * kv = Z_ARRVAL_P(arr);
     HashPosition pos;
@@ -801,7 +816,7 @@ PHP_METHOD(parser_base, DefineVars) {
 
             convert_to_double_ex(_val);
 
-            _this->DefineVar(_key, &Z_DVAL_PP(_val));
+            _self->DefineVar(_key, &Z_DVAL_PP(_val));
         }
     MUP_CATCH_AND_END_TRY
 }
@@ -825,15 +840,15 @@ PHP_METHOD(parser_base, DefinePostfixOprt) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     // TODO
 
     fun_type1 func = NULL;
 
     MUP_TRY
-    _this->DefinePostfixOprt(a_sName, func, a_bAllowOpt);
+    _self->DefinePostfixOprt(a_sName, func, a_bAllowOpt);
     MUP_CATCH_AND_END_TRY
 }
 /** }}} **/
@@ -855,65 +870,65 @@ PHP_METHOD(parser_base, DefineInfixOprt) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     // TODO
 
     fun_type1 func = NULL;
 
     MUP_TRY
-    _this->DefineInfixOprt(a_sName, func, a_iPrec, a_bAllowOpt);
+    _self->DefineInfixOprt(a_sName, func, a_iPrec, a_bAllowOpt);
     MUP_CATCH_AND_END_TRY
 }
 
 PHP_METHOD(parser_base, ClearVar) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ClearVar();
+    _self->ClearVar();
 }
 PHP_METHOD(parser_base, ClearFun) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ClearFun();
+    _self->ClearFun();
 }
 PHP_METHOD(parser_base, ClearConst) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ClearConst();
+    _self->ClearConst();
 }
 PHP_METHOD(parser_base, ClearInfixOprt) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ClearInfixOprt();
+    _self->ClearInfixOprt();
 }
 PHP_METHOD(parser_base, ClearPostfixOprt) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ClearPostfixOprt();
+    _self->ClearPostfixOprt();
 }
 PHP_METHOD(parser_base, ClearOprt) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->ClearOprt();
+    _self->ClearOprt();
 }
 
 PHP_METHOD(parser_base, RemoveVar) {
@@ -926,21 +941,21 @@ PHP_METHOD(parser_base, RemoveVar) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->RemoveVar(a_sName);
+    _self->RemoveVar(a_sName);
 }
 PHP_METHOD(parser_base, GetUsedVar) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
     varmap_type ret;
 
     MUP_TRY
-        ret = _this->GetUsedVar();
+        ret = _self->GetUsedVar();
     MUP_CATCH
         MUP_THROW_EXCEPTION
         RETURN_NULL();
@@ -958,10 +973,10 @@ PHP_METHOD(parser_base, GetUsedVar) {
 PHP_METHOD(parser_base, GetVar) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    varmap_type ret = _this->GetVar();
+    varmap_type ret = _self->GetVar();
 
     zval *z = NULL;
     MAKE_STD_ZVAL(z);
@@ -975,10 +990,10 @@ PHP_METHOD(parser_base, GetVar) {
 PHP_METHOD(parser_base, GetConst) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    valmap_type ret = _this->GetConst();
+    valmap_type ret = _self->GetConst();
 
     zval *z = NULL;
     MAKE_STD_ZVAL(z);
@@ -992,10 +1007,10 @@ PHP_METHOD(parser_base, GetConst) {
 PHP_METHOD(parser_base, GetExpr) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    string_type ret = _this->GetExpr();
+    string_type ret = _self->GetExpr();
 
     RETURN_STRINGL(ret.c_str(), ret.size(), 1);
 }
@@ -1012,10 +1027,10 @@ PHP_METHOD(parser_base, GetVersion) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    string_type ret = _this->GetVersion((EParserVersionInfo)eInfo);
+    string_type ret = _self->GetVersion((EParserVersionInfo)eInfo);
 
     RETURN_STRINGL(ret.c_str(), ret.size(), 1);
 }
@@ -1024,10 +1039,10 @@ PHP_METHOD(parser_base, GetOprtDef) {
     // TODO
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    const char_type **ret = _this->GetOprtDef();
+    const char_type **ret = _self->GetOprtDef();
 
     //TODO 
     //RETURN_STRINGL(ret, strlen(ret), 1);
@@ -1043,10 +1058,10 @@ PHP_METHOD(parser_base, DefineNameChars) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->DefineNameChars(szCharset);
+    _self->DefineNameChars(szCharset);
 }
 
 PHP_METHOD(parser_base, DefineOprtChars) {
@@ -1059,10 +1074,10 @@ PHP_METHOD(parser_base, DefineOprtChars) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->DefineOprtChars(szCharset);
+    _self->DefineOprtChars(szCharset);
 }
 PHP_METHOD(parser_base, DefineInfixOprtChars) {
     int argc = ZEND_NUM_ARGS();
@@ -1074,38 +1089,38 @@ PHP_METHOD(parser_base, DefineInfixOprtChars) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->DefineInfixOprtChars(szCharset);
+    _self->DefineInfixOprtChars(szCharset);
 }
 
 PHP_METHOD(parser_base, ValidNameChars) {
     int argc = ZEND_NUM_ARGS();
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    const char_type * ret = _this->ValidNameChars();
+    const char_type * ret = _self->ValidNameChars();
     RETURN_STRINGL(ret, strlen(ret), 1);
 }
 
 PHP_METHOD(parser_base, ValidOprtChars) {
     int argc = ZEND_NUM_ARGS();
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    const char_type * ret = _this->ValidOprtChars();
+    const char_type * ret = _self->ValidOprtChars();
     RETURN_STRINGL(ret, strlen(ret), 1);
 }
 PHP_METHOD(parser_base, ValidInfixOprtChars) {
     int argc = ZEND_NUM_ARGS();
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    const char_type * ret = _this->ValidInfixOprtChars();
+    const char_type * ret = _self->ValidInfixOprtChars();
     RETURN_STRINGL(ret, strlen(ret), 1);
 }
 
@@ -1119,18 +1134,18 @@ PHP_METHOD(parser_base, SetArgSep) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->SetArgSep(*cArgSep);
+    _self->SetArgSep(*cArgSep);
 }
 PHP_METHOD(parser_base, GetArgSep) {
     MUP_CHECK_PARAM(0, 0);
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    char_type ret = _this->GetArgSep();
+    char_type ret = _self->GetArgSep();
 
     RETURN_STRINGL(&ret, 1, 1);
 }
@@ -1147,10 +1162,10 @@ PHP_METHOD(parser_base, Error) {
         WRONG_PARAM_COUNT;
     }
 
-    ParserBase * _this = NULL;
-    MUP_GET_OBJ(ParserBase, _this);
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
 
-    _this->Error((EErrorCodes) a_iErrc, a_iPos, a_sTok);
+    _self->Error((EErrorCodes) a_iErrc, a_iPos, a_sTok);
 }
 */
 
@@ -1231,11 +1246,11 @@ zend_function_entry mu_parser_base_methods [] = {
 MUPARSER_STARTUP_FUNCTION(parser) {
     zend_class_entry ce;
 
-    INIT_NS_CLASS_ENTRY(ce, "mu", "ParserBase", mu_parser_base_methods);
+    INIT_CLASS_ENTRY(ce, "mu\\ParserBase", mu_parser_base_methods);
     mu_parser_base_ce = zend_register_internal_class(&ce TSRMLS_CC);
     //ce.create_object = mup_create_mu_parser_base_object<ParserBase>;
 
-    INIT_NS_CLASS_ENTRY(ce, "mu", "Parser", mu_parser_methods);
+    INIT_CLASS_ENTRY(ce, "mu\\Parser", mu_parser_methods);
     mu_parser_ce = zend_register_internal_class_ex(&ce, mu_parser_base_ce, NULL TSRMLS_CC);
     mu_parser_ce->create_object = mup_create_mu_parser_object<Parser>;
     memcpy(&_mu_parser_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
@@ -1247,4 +1262,11 @@ MUPARSER_STARTUP_FUNCTION(parser) {
 
 MUPARSER_SHUTDOWN_FUNCTION(parser) {
     return SUCCESS;
+}
+
+MUPARSER_ACTIVATE_FUNCTION(parser) {
+}
+
+MUPARSER_DEACTIVATE_FUNCTION(parser) {
+    // TODO
 }

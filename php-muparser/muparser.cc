@@ -63,13 +63,11 @@ PHP_INI_END()
 
 /* {{{ php_muparser_init_globals
  */
-/* Uncomment this function if you have INI entries
+/* Uncomment this function if you have INI entries */
 static void php_muparser_init_globals(zend_muparser_globals *muparser_globals)
 {
-	muparser_globals->global_value = 0;
-	muparser_globals->global_string = NULL;
+	muparser_globals->saved_args = NULL;
 }
-*/
 /* }}} */
 
 /* {{{ PHP_MINIT_FUNCTION
@@ -119,6 +117,7 @@ PHP_MSHUTDOWN_FUNCTION(muparser)
  */
 PHP_RINIT_FUNCTION(muparser)
 {
+    MUPARSER_ACTIVATE_FUNCTION(parser);
 	return SUCCESS;
 }
 /* }}} */
@@ -128,6 +127,7 @@ PHP_RINIT_FUNCTION(muparser)
  */
 PHP_RSHUTDOWN_FUNCTION(muparser)
 {
+    MUPARSER_DEACTIVATE_FUNCTION(parser);
 	return SUCCESS;
 }
 /* }}} */

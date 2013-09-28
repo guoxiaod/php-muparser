@@ -60,7 +60,9 @@ if test "$PHP_MUPARSER" != "no"; then
   PHP_SUBST(MUPARSER_SHARED_LIBADD)
   PHP_REQUIRE_CXX()
   PHP_ADD_LIBRARY(stdc++, 1, MUPARSER_SHARED_LIBADD)
-  PHP_ADD_LIBRARY_WITH_PATH(muparser, /usr/lib/, MUPARSER_SHARED_LIBADD)
+  PHP_ADD_LIBRARY(muparser, 1, MUPARSER_SHARED_LIBADD)
+  dnl CXXFLAGS+=" -std=c++0x "
+  dnl LDFLAGS+=" -std=c++0x "
 
   PHP_NEW_EXTENSION(muparser, muparser.cc util.cc mu_def.cc mu_parser.cc mu_exception.cc, $ext_shared)
 fi

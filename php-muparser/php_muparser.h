@@ -17,6 +17,10 @@ extern zend_module_entry muparser_module_entry;
 #include "TSRM.h"
 #endif
 
+#include "func.h"
+
+using namespace std;
+
 PHP_MINIT_FUNCTION(muparser);
 PHP_MSHUTDOWN_FUNCTION(muparser);
 PHP_RINIT_FUNCTION(muparser);
@@ -30,8 +34,7 @@ PHP_FUNCTION(confirm_muparser_compiled);	/* For testing, remove later. */
 	and END macros here:     
 */
 ZEND_BEGIN_MODULE_GLOBALS(muparser)
-	long  global_value;
-	char *global_string;
+    mu_saved_args **saved_args;
 ZEND_END_MODULE_GLOBALS(muparser)
 
 /* In every utility function you add that needs to use variables 
