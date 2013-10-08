@@ -64,5 +64,5 @@ if test "$PHP_MUPARSER" != "no"; then
   dnl CXXFLAGS+=" -std=c++0x "
   dnl LDFLAGS+=" -std=c++0x "
 
-  PHP_NEW_EXTENSION(muparser, muparser.cc util.cc mu_def.cc mu_parser.cc mu_exception.cc, $ext_shared)
+  PHP_NEW_EXTENSION(muparser, muparser.cc util.cc mu_def.cc mu_parser.cc mu_exception.cc muPhpParser.cc, $ext_shared)
 fi

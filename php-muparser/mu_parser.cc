@@ -6,8 +6,9 @@
 #include "SAPI.h"
 #include "php_muparser.h"
 #include "util.h"
-#include "muParser.h"
+// #include "muParser.h"
 #include "mu_exception.h"
+#include "muPhpParser.h"
 
 using namespace std;
 using namespace mu;
@@ -17,36 +18,28 @@ static zend_class_entry * mu_parser_base_ce = NULL;
 
 static zend_object_handlers _mu_parser_handlers;
 
-
-static void _force_val_to_double(ParserBase * parser) {
-    varmap_type m = parser->GetVar();
-    for(varmap_type::iterator i = m.begin(); i != m.end(); i++) {
-        convert_to_double_ex((zval**)&i->second);  
-    }
-}
-
-template <typename T>
 static void mup_destroy_mu_parser_object(void * p TSRMLS_DC) {
     mu_wrapper * wrapper = static_cast<mu_wrapper *> (p);
-    T * ptr = static_cast<T*> (wrapper->ptr);
+    PhpParser * ptr = static_cast<PhpParser*> (wrapper->ptr);
     if(ptr != NULL) {
         delete ptr;
+        ptr = NULL;
     }
     zend_object_std_dtor(&wrapper->obj);
-    efree(p);
+    efree(wrapper);
+    wrapper = NULL;
 }
 
-template <typename T>
 static zend_object_value mup_create_mu_parser_object(zend_class_entry * ce TSRMLS_DC) {
     zend_object_value result;
 
     mu_wrapper * wrapper = mup_create_wrapper(ce);
 
     MUP_TRY
-        wrapper->ptr = new T();
+        wrapper->ptr = new PhpParser();
     MUP_CATCH_AND_END_TRY
 
-    result.handle = zend_objects_store_put(&wrapper->obj, NULL, (zend_objects_free_object_storage_t) mup_destroy_mu_parser_object<T>, NULL TSRMLS_CC);
+    result.handle = zend_objects_store_put(&wrapper->obj, NULL, (zend_objects_free_object_storage_t) mup_destroy_mu_parser_object, NULL TSRMLS_CC);
     result.handlers = &_mu_parser_handlers;
     
     return result;
@@ -84,6 +77,17 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_Diff, 0, 0, 3)
     ZEND_ARG_INFO(0, a_fEpsilon)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_ClearVar, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_RemoveVar, 0, 0, 1)
+    ZEND_ARG_INFO(0, a_strVarName)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_UpdateVar, 0, 0, 2)
+    ZEND_ARG_INFO(0, a_sName)
+    ZEND_ARG_INFO(0, a_Var)
+ZEND_END_ARG_INFO()
 /** }}} **/
 
 
@@ -171,13 +175,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_base_DefineStrConst, 0, 0, 2)
     ZEND_ARG_INFO(0, a_strVal)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_base_DefineVar, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_base_DefineVar, 0, 0, 1)
     ZEND_ARG_INFO(0, a_sName)
-    ZEND_ARG_INFO(1, a_fVal) 
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_base_DefineVars, 0, 0, 1)
-    ZEND_ARG_INFO(1, kv)
+    ZEND_ARG_INFO(0, a_fVal)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_base_DefinePostfixOprt, 0, 0, 2)
@@ -278,37 +278,22 @@ ZEND_END_ARG_INFO()
 
 
 /** mu\Parser method {{{ **/
-PHP_METHOD(parser, __construct) {
-    MUP_CHECK_PARAM(0, 0);
-
-    //MUP_GET_OBJ(Parser, _self);
-
-    mu_wrapper * _r = static_cast<mu_wrapper*>(mup_extract_wrapper(getThis() TSRMLS_CC));
-
-    if( _r == NULL) { 
-        php_error(E_ERROR, "Cann't call %s() method as static method", get_active_function_name(TSRMLS_C));
-        RETURN_NULL();
-    }
-    MUP_TRY
-        //_r->ptr = (void *) new Parser();
-    MUP_CATCH_AND_END_TRY
-}
-PHP_METHOD(parser, __destruct) {
-}
+PHP_METHOD(parser, __construct) { }
+PHP_METHOD(parser, __destruct) { }
 
 PHP_METHOD(parser, InitCharSets) { 
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _self = NULL;
-    MUP_GET_OBJ(Parser, _self);
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
 
     _self->InitCharSets();
 }
 PHP_METHOD(parser, InitFun) {
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _self = NULL;
-    MUP_GET_OBJ(Parser, _self);
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
 
     MUP_TRY
     _self->InitFun();
@@ -317,8 +302,8 @@ PHP_METHOD(parser, InitFun) {
 PHP_METHOD(parser, InitConst) {
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _self = NULL;
-    MUP_GET_OBJ(Parser, _self);
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
 
     MUP_TRY
     _self->InitConst();
@@ -327,8 +312,8 @@ PHP_METHOD(parser, InitConst) {
 PHP_METHOD(parser, InitOprt) {
     MUP_CHECK_PARAM(0, 0);
 
-    Parser * _self = NULL;
-    MUP_GET_OBJ(Parser, _self);
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
 
     _self->InitOprt();
 }
@@ -343,8 +328,8 @@ PHP_METHOD(parser, Diff) {
     if(zend_parse_parameters(argc TSRMLS_CC, "zdd", &a_Var, &a_fPos, &a_fEpsilon) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
-    Parser * _self = NULL;
-    MUP_GET_OBJ(Parser, _self);
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
 
     if(Z_TYPE_P(a_Var) != IS_DOUBLE) {
         convert_to_double_ex(&a_Var);
@@ -353,6 +338,50 @@ PHP_METHOD(parser, Diff) {
     value_type ret = _self->Diff(&Z_DVAL_P(a_Var), a_fPos, a_fEpsilon);
 
     RETURN_DOUBLE(ret);
+}
+
+PHP_METHOD(parser, RemoveVar) {
+    int argc = ZEND_NUM_ARGS();
+    
+    int a_sName_len = 0;
+    char * a_sName;
+
+    if(zend_parse_parameters(argc TSRMLS_CC, "s", &a_sName, & a_sName_len) == FAILURE) {
+        WRONG_PARAM_COUNT;
+    }
+
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
+
+    _self->RemoveVar(a_sName);
+}
+
+PHP_METHOD(parser, ClearVar) {
+    MUP_CHECK_PARAM(0, 0);
+
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
+
+    _self->ClearVar();
+}
+
+PHP_METHOD(parser, UpdateVar) {
+    int argc = ZEND_NUM_ARGS();
+
+    int key_len = 0;
+    char * key;
+    value_type val = 0.0;
+
+    if(zend_parse_parameters(argc TSRMLS_CC, "sd", &key, &key_len, &val) == FAILURE) {
+        WRONG_PARAM_COUNT;
+    }
+
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
+
+    MUP_TRY
+    _self->UpdateVar(key, val);
+    MUP_CATCH_AND_END_TRY
 }
 /** }}} **/
 
@@ -383,7 +412,6 @@ PHP_METHOD(parser_base, Eval) {
         value_type ret;
     
         MUP_TRY
-            _force_val_to_double(_self);
             ret =  _self->Eval(); 
         MUP_CATCH_AND_END_TRY
 
@@ -403,7 +431,6 @@ PHP_METHOD(parser_base, Eval) {
         value_type * ret;
 
         MUP_TRY
-            _force_val_to_double(_self);
             ret = _self->Eval(n);
         MUP_CATCH
             MUP_THROW_EXCEPTION
@@ -413,14 +440,12 @@ PHP_METHOD(parser_base, Eval) {
         Z_LVAL_P(nStackSize) = n;
 
         if(ret) {
-            zval * z = NULL;
-            MAKE_STD_ZVAL(z);
-            array_init(z);
+            array_init(return_value);
 
             for(int i = 0; i < n; i ++) {
-                add_next_index_double(z, ret[i]);
+                add_next_index_double(return_value, ret[i]);
             }
-            RETURN_ZVAL(z, 0, 0);
+            return;
         }
         RETURN_NULL();
     }
@@ -443,7 +468,6 @@ PHP_METHOD(parser_base, EvalByBulk) {
     value_type * results = (value_type*) emalloc(sizeof(value_type) * nBulkSize);
 
     MUP_TRY
-        _force_val_to_double(_self);
         _self->Eval(results, nBulkSize);
     MUP_CATCH
         MUP_THROW_EXCEPTION
@@ -451,15 +475,12 @@ PHP_METHOD(parser_base, EvalByBulk) {
         RETURN_NULL();
     MUP_END_TRY
 
-    zval * z = NULL;
-    MAKE_STD_ZVAL(z);
-    array_init(z);
+    array_init(return_value);
 
     for(int i = 0; i < nBulkSize; i ++) {
-        add_next_index_double(z, results[i]);
+        add_next_index_double(return_value, results[i]);
     }
     efree(results);
-    RETURN_ZVAL(z, 0, 0);
 }
 
 PHP_METHOD(parser_base, GetNumResults) {
@@ -671,9 +692,10 @@ PHP_METHOD(parser_base, DefineOprt) {
 PHP_METHOD(parser_base, DefineConst) {
     int argc = ZEND_NUM_ARGS();
     
-    zval * key = NULL, * val = NULL;
+    zval * key = NULL;
+    value_type val = 0.0;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "z|z", &key, &val) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "z/|d", &key, &val) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
@@ -702,8 +724,7 @@ PHP_METHOD(parser_base, DefineConst) {
             break;
         case IS_STRING:
             if(argc == 2) {
-                convert_to_double_ex(&val);
-                _self->DefineConst(Z_STRVAL_P(key), Z_DVAL_P(val));
+                _self->DefineConst(Z_STRVAL_P(key), val);
             } else {
                 WRONG_PARAM_COUNT;
             }
@@ -722,7 +743,7 @@ PHP_METHOD(parser_base, DefineStrConst) {
     
     zval * key = NULL, * val = NULL;
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "z|z", &key, &val) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "z/|z/", &key, &val) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
@@ -770,55 +791,46 @@ PHP_METHOD(parser_base, DefineStrConst) {
 PHP_METHOD(parser_base, DefineVar) {
     int argc = ZEND_NUM_ARGS();
     
-    char *key = NULL;
-    int key_len = 0;
+    zval * key = NULL;
+    value_type val = 0;
 
-    zval * val = NULL;
-
-    if(zend_parse_parameters(argc TSRMLS_CC, "sz", &key, &key_len, &val) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "z/|d", &key, &val) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    convert_to_double_ex(&val);
-
-    MUP_TRY
-        _self->DefineVar(key, &Z_DVAL_P(val));
-    MUP_CATCH_AND_END_TRY
-}
-/** }}} **/
-
-/** {{{ **/
-PHP_METHOD(parser_base, DefineVars) {
-    int argc = ZEND_NUM_ARGS();
-    
-    zval * arr = NULL;
-    if(zend_parse_parameters(argc TSRMLS_CC, "a", &arr) == FAILURE) {
-        WRONG_PARAM_COUNT;
-    }
-
-    ParserBase * _self = NULL;
-    MUP_GET_OBJ(ParserBase, _self);
-
-    HashTable * kv = Z_ARRVAL_P(arr);
-    HashPosition pos;
-    
     char * _key = NULL;
     zval ** _val = NULL;
+    // the first parameter is array
+    if(Z_TYPE_P(key) == IS_ARRAY && argc == 1) {
+        HashPosition pos;
+        HashTable * kv = Z_ARRVAL_P(key);
+        MUP_TRY
+            int i = 0;
+            double * arr = (double *) emalloc(sizeof(double) * zend_hash_num_elements(kv));
+            for(zend_hash_internal_pointer_reset_ex(kv, &pos);
+                zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
+                    zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
+                zend_hash_move_forward_ex(kv, &pos), i ++) {
 
-    MUP_TRY
-        for(zend_hash_internal_pointer_reset_ex(kv, &pos);
-            zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
-                zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
-            zend_hash_move_forward_ex(kv, &pos)) {
+                convert_to_double_ex(_val);
+                arr[i] = Z_DVAL_PP(_val);
 
-            convert_to_double_ex(_val);
-
-            _self->DefineVar(_key, &Z_DVAL_PP(_val));
-        }
-    MUP_CATCH_AND_END_TRY
+                _self->DefineVar(_key, &arr[i]);
+            }
+        MUP_CATCH_AND_END_TRY
+    // if first parameter is string
+    } else if (Z_TYPE_P(key) == IS_STRING && argc == 2) {
+        MUP_TRY
+            double *n = (double *) emalloc(sizeof(double));
+            *n = val;
+            _self->DefineVar(Z_STRVAL_P(key), n);
+        MUP_CATCH_AND_END_TRY
+    } else {
+        WRONG_PARAM_COUNT;
+    }
 }
 /** }}} **/
 
@@ -961,14 +973,11 @@ PHP_METHOD(parser_base, GetUsedVar) {
         RETURN_NULL();
     MUP_END_TRY
 
-    zval *z = NULL;
-    MAKE_STD_ZVAL(z);
-    array_init(z);
+    array_init(return_value);
 
     for(varmap_type::iterator i = ret.begin(); i != ret.end(); i ++) {
-        add_assoc_zval(z, i->first.c_str(), (zval*) i->second);
+        add_assoc_double(return_value, i->first.c_str(), *i->second);
     }
-    RETURN_ZVAL(z, 0, 0);
 }
 PHP_METHOD(parser_base, GetVar) {
     MUP_CHECK_PARAM(0, 0);
@@ -978,15 +987,13 @@ PHP_METHOD(parser_base, GetVar) {
 
     varmap_type ret = _self->GetVar();
 
-    zval *z = NULL;
-    MAKE_STD_ZVAL(z);
-    array_init(z);
+    array_init(return_value);
 
     for(varmap_type::iterator i = ret.begin(); i != ret.end(); i ++) {
-        add_assoc_zval(z, i->first.c_str(), (zval*)i->second);
+        add_assoc_double(return_value, i->first.c_str(), *i->second);
     }
-    RETURN_ZVAL(z, 0, 0);
 }
+
 PHP_METHOD(parser_base, GetConst) {
     MUP_CHECK_PARAM(0, 0);
 
@@ -995,14 +1002,11 @@ PHP_METHOD(parser_base, GetConst) {
 
     valmap_type ret = _self->GetConst();
 
-    zval *z = NULL;
-    MAKE_STD_ZVAL(z);
-    array_init(z);
+    array_init(return_value);
 
     for(valmap_type::iterator i = ret.begin(); i != ret.end(); i ++) {
-        add_assoc_double(z, i->first.c_str(), i->second);
+        add_assoc_double(return_value, i->first.c_str(), i->second);
     }
-    RETURN_ZVAL(z, 0, 0);
 }
 PHP_METHOD(parser_base, GetExpr) {
     MUP_CHECK_PARAM(0, 0);
@@ -1178,7 +1182,9 @@ zend_function_entry mu_parser_methods [] = {
     MUP_ME(parser, InitConst, ZEND_ACC_PUBLIC)
     MUP_ME(parser, InitOprt, ZEND_ACC_PUBLIC)
     MUP_ME(parser, OnDetectVar, ZEND_ACC_PUBLIC)
-    MUP_ME(parser, Diff,  ZEND_ACC_PUBLIC)
+//    MUP_ME(parser, Diff,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser, RemoveVar,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser, ClearVar,  ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -1209,8 +1215,6 @@ zend_function_entry mu_parser_base_methods [] = {
     MUP_ME(parser_base, DefineVar,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, DefinePostfixOprt,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, DefineInfixOprt,  ZEND_ACC_PUBLIC)
-
-    MUP_ME(parser_base, DefineVars,  ZEND_ACC_PUBLIC)
 
     MUP_ME(parser_base, ClearVar,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, ClearFun,  ZEND_ACC_PUBLIC)
@@ -1252,7 +1256,7 @@ MUPARSER_STARTUP_FUNCTION(parser) {
 
     INIT_CLASS_ENTRY(ce, "mu\\Parser", mu_parser_methods);
     mu_parser_ce = zend_register_internal_class_ex(&ce, mu_parser_base_ce, NULL TSRMLS_CC);
-    mu_parser_ce->create_object = mup_create_mu_parser_object<Parser>;
+    mu_parser_ce->create_object = mup_create_mu_parser_object;
     memcpy(&_mu_parser_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
     _mu_parser_handlers.clone_obj = NULL;
 
@@ -1265,8 +1269,10 @@ MUPARSER_SHUTDOWN_FUNCTION(parser) {
 }
 
 MUPARSER_ACTIVATE_FUNCTION(parser) {
+    return SUCCESS;
 }
 
 MUPARSER_DEACTIVATE_FUNCTION(parser) {
     // TODO
+    return SUCCESS;
 }

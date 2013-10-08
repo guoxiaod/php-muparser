@@ -17,8 +17,6 @@ extern zend_module_entry muparser_module_entry;
 #include "TSRM.h"
 #endif
 
-#include "func.h"
-
 using namespace std;
 
 PHP_MINIT_FUNCTION(muparser);
