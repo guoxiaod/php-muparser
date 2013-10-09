@@ -808,17 +808,17 @@ PHP_METHOD(parser_base, DefineVar) {
         HashPosition pos;
         HashTable * kv = Z_ARRVAL_P(key);
         MUP_TRY
-            int i = 0;
-            double * arr = (double *) emalloc(sizeof(double) * zend_hash_num_elements(kv));
+            //double * arr = (double *) emalloc(sizeof(double) * zend_hash_num_elements(kv));
             for(zend_hash_internal_pointer_reset_ex(kv, &pos);
                 zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
                     zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
-                zend_hash_move_forward_ex(kv, &pos), i ++) {
+                zend_hash_move_forward_ex(kv, &pos)) {
 
                 convert_to_double_ex(_val);
-                arr[i] = Z_DVAL_PP(_val);
+                double * n = (double *) emalloc(sizeof(double));
+                *n = Z_DVAL_PP(_val);
 
-                _self->DefineVar(_key, &arr[i]);
+                _self->DefineVar(_key, n);
             }
         MUP_CATCH_AND_END_TRY
     // if first parameter is string
@@ -1206,32 +1206,32 @@ zend_function_entry mu_parser_base_methods [] = {
     MUP_ME(parser_base, EnableOptimizer,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, EnableBuiltInOprt,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, HasBuiltInOprt,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, AddValIdent,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, AddValIdent,  ZEND_ACC_PUBLIC) // TODO
 
-    MUP_ME(parser_base, DefineFun,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, DefineOprt,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, DefineFun,  ZEND_ACC_PUBLIC) // TODO
+    MUP_ME(parser_base, DefineOprt,  ZEND_ACC_PUBLIC) // TODO
     MUP_ME(parser_base, DefineConst,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, DefineStrConst,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, DefineVar,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, DefinePostfixOprt,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, DefineInfixOprt,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, DefinePostfixOprt,  ZEND_ACC_PUBLIC) // TODO
+    MUP_ME(parser_base, DefineInfixOprt,  ZEND_ACC_PUBLIC) // TODO
 
     MUP_ME(parser_base, ClearVar,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, ClearFun,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, ClearFun,  ZEND_ACC_PUBLIC) // TODO
     MUP_ME(parser_base, ClearConst,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, ClearInfixOprt,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, ClearPostfixOprt,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, ClearOprt,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, ClearInfixOprt,  ZEND_ACC_PUBLIC) // TODO
+    MUP_ME(parser_base, ClearPostfixOprt,  ZEND_ACC_PUBLIC) // TODO
+    MUP_ME(parser_base, ClearOprt,  ZEND_ACC_PUBLIC) // TODO
 
     MUP_ME(parser_base, RemoveVar,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, GetUsedVar,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, GetVar,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, GetConst,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, GetExpr,  ZEND_ACC_PUBLIC)
-    MUP_ME(parser_base, GetFunDef,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, GetFunDef,  ZEND_ACC_PUBLIC) // TODO
     MUP_ME(parser_base, GetVersion,  ZEND_ACC_PUBLIC)
 
-    MUP_ME(parser_base, GetOprtDef,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser_base, GetOprtDef,  ZEND_ACC_PUBLIC) // TODO
     MUP_ME(parser_base, DefineNameChars,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, DefineOprtChars,  ZEND_ACC_PUBLIC)
     MUP_ME(parser_base, DefineInfixOprtChars,  ZEND_ACC_PUBLIC)

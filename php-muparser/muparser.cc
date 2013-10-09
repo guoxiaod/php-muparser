@@ -66,7 +66,6 @@ PHP_INI_END()
 /* Uncomment this function if you have INI entries */
 static void php_muparser_init_globals(zend_muparser_globals *muparser_globals)
 {
-	muparser_globals->saved_args = NULL;
 }
 /* }}} */
 

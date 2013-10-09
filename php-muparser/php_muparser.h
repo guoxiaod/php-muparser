@@ -32,7 +32,6 @@ PHP_FUNCTION(confirm_muparser_compiled);	/* For testing, remove later. */
 	and END macros here:     
 */
 ZEND_BEGIN_MODULE_GLOBALS(muparser)
-    mu_saved_args **saved_args;
 ZEND_END_MODULE_GLOBALS(muparser)
 
 /* In every utility function you add that needs to use variables 
