@@ -1,0 +1,209 @@
+Index: include/muParserBase.h
+===================================================================
+--- include/muParserBase.h	(revision 9)
++++ include/muParserBase.h	(working copy)
+@@ -266,6 +266,7 @@
+     value_type ParseCmdCodeBulk(int nOffset, int nThreadID) const;
+ 
+     void  CheckName(const string_type &a_strName, const string_type &a_CharSet) const;
++    void  CheckVarName(const string_type &a_strName, const string_type &a_CharSet) const;
+     void  CheckOprt(const string_type &a_sName,
+                     const ParserCallback &a_Callback,
+                     const string_type &a_szCharSet) const;
+Index: include/muParserTokenReader.h
+===================================================================
+--- include/muParserTokenReader.h	(revision 9)
++++ include/muParserTokenReader.h	(working copy)
+@@ -76,6 +76,8 @@
+       void ReInit();
+       token_type ReadNextToken();
+ 
++      static size_t find_first_not_utf8_name(const string_type &str, int offset);     
++
+   private:
+ 
+       /** \brief Syntax codes. 
+@@ -112,6 +114,12 @@
+       int ExtractToken(const char_type *a_szCharSet, 
+                        string_type &a_strTok, 
+                        int a_iPos) const;
++
++      int ExtractVarToken(const char_type *a_szCharSet, 
++                       string_type &a_strTok, 
++                       int a_iPos) const;
++
++
+       int ExtractOperatorToken(string_type &a_sTok, int a_iPos) const;
+ 
+       bool IsBuiltIn(token_type &a_Tok);
+Index: src/muParserBase.cpp
+===================================================================
+--- src/muParserBase.cpp	(revision 9)
++++ src/muParserBase.cpp	(working copy)
+@@ -399,7 +399,15 @@
+       Error(ecINVALID_NAME);
+     }
+   }
+-
++  void ParserBase::CheckVarName(const string_type &a_sName,
++                             const string_type &a_szCharSet) const
++  {
++    if( !a_sName.length() ||
++        (a_sName[0] >= '0' && a_sName[0] <= '9') ||
++        (m_pTokenReader->find_first_not_utf8_name(a_sName, 0) != string_type::npos)) {
++        Error(ecINVALID_NAME); 
++    }
++  }
+   //---------------------------------------------------------------------------
+   /** \brief Set the formula. 
+       \param a_strFormula Formula as string_type
+@@ -577,7 +585,7 @@
+     if (m_StrVarDef.find(a_strName)!=m_StrVarDef.end())
+       Error(ecNAME_CONFLICT);
+ 
+-    CheckName(a_strName, ValidNameChars());
++    CheckVarName(a_strName, ValidNameChars());
+     
+     m_vStringVarBuf.push_back(a_strVal);                // Store variable string in internal buffer
+     m_StrVarDef[a_strName] = m_vStringVarBuf.size()-1;  // bind buffer index to variable name
+@@ -601,7 +609,7 @@
+     if (m_ConstDef.find(a_sName)!=m_ConstDef.end())
+       Error(ecNAME_CONFLICT);
+ 
+-    CheckName(a_sName, ValidNameChars());
++    CheckVarName(a_sName, ValidNameChars());
+     m_VarDef[a_sName] = a_pVar;
+     ReInit();
+   }
+@@ -615,7 +623,7 @@
+   */
+   void ParserBase::DefineConst(const string_type &a_sName, value_type a_fVal)
+   {
+-    CheckName(a_sName, ValidNameChars());
++    CheckVarName(a_sName, ValidNameChars());
+     m_ConstDef[a_sName] = a_fVal;
+     ReInit();
+   }
+Index: src/muParserTokenReader.cpp
+===================================================================
+--- src/muParserTokenReader.cpp	(revision 9)
++++ src/muParserTokenReader.cpp	(working copy)
+@@ -290,7 +290,7 @@
+     // !!! From this point on there is no exit without an exception possible...
+     // 
+     string_type strTok;
+-    int iEnd = ExtractToken(m_pParser->ValidNameChars(), strTok, m_iPos);
++    int iEnd = ExtractVarToken(m_pParser->ValidNameChars(), strTok, m_iPos);
+     if (iEnd!=m_iPos)
+       Error(ecUNASSIGNABLE_TOKEN, m_iPos, strTok);
+ 
+@@ -336,6 +336,68 @@
+     return iEnd;
+   }
+ 
++  int ParserTokenReader::ExtractVarToken(const char_type *a_szCharSet, 
++                                      string_type &a_sTok, 
++                                      int a_iPos) const
++  {
++    //int iEnd = (int)m_strFormula.find_first_not_of(a_szCharSet, a_iPos);
++    int iEnd = (int) find_first_not_utf8_name(m_strFormula, a_iPos);
++
++    if (iEnd==(int)string_type::npos)
++        iEnd = (int)m_strFormula.length();
++    
++    // Assign token string if there was something found
++    if (a_iPos!=iEnd)
++      a_sTok = string_type( m_strFormula.begin()+a_iPos, m_strFormula.begin()+iEnd);
++
++    return iEnd;
++  }
++
++  /**
++  * allow chars: A-Za-z0-9_ and utf8
++  *
++  **/
++  size_t ParserTokenReader::find_first_not_utf8_name(const string_type & str, int offset) {
++     int len = str.length();
++     if(offset >= len) {
++        return string_type::npos;
++     }
++
++     unsigned char *s = (unsigned char *) str.c_str();
++     unsigned char *it = s + offset, *end = s + len;
++
++     while (it != end) 
++     {
++         if (*it < 192) { //*out++ = *it++; // single byte character
++            if( !(*it == '_' || (*it >= '0' && *it <= '9') || (*it >= 'A' && *it <= 'Z') || (*it >= 'a' && *it <= 'z'))) {
++                break; 
++            }
++            it++;
++         } else if (*it == 0xc2 && *(it + 1) == 0xa0) {
++            break;
++         } else if (*it < 224 && it + 1 < end && *(it+1) > 127) { 
++             // double byte character
++             //*out++ = ((*it & 0x1F) << 6) | (*(it+1) & 0x3F);
++             it += 2;
++         } else if (*it < 240 && it + 2 < end && *(it+1) > 127 && *(it+2) > 127) { 
++             // triple byte character
++             //*out++ = ((*it & 0x0F) << 12) | ((*(it+1) & 0x3F) << 6) | (*(it+2) & 0x3F);
++             it += 3;
++         } else if (*it < 248 && it + 3 < end && *(it+1) > 127 && *(it+2) > 127 && *(it+3) > 127) { 
++             // 4-byte character
++             //*out++ = ((*it & 0x07) << 18) | ((*(it+1) & 0x3F) << 12) |
++             //  ((*(it+2) & 0x3F) << 6) | (*(it+3) & 0x3F);
++             it += 4;
++         } else { //++it; // Invalid byte sequence (throw an exception here if you want)
++            break;
++         }
++     }
++     if(it == end) {
++        return string_type::npos;
++     }
++     return it - s;
++  }
++
+   //---------------------------------------------------------------------------
+   /** \brief Check Expression for the presence of a binary operator token.
+   
+@@ -729,7 +791,7 @@
+     
+     // 2.) Check for user defined constant
+     // Read everything that could be a constant name
+-    iEnd = ExtractToken(m_pParser->ValidNameChars(), strTok, m_iPos);
++    iEnd = ExtractVarToken(m_pParser->ValidNameChars(), strTok, m_iPos);
+     if (iEnd!=m_iPos)
+     {
+       valmap_type::const_iterator item = m_pConstDef->find(strTok);
+@@ -778,7 +840,7 @@
+       return false;
+ 
+     string_type strTok;
+-    int iEnd = ExtractToken(m_pParser->ValidNameChars(), strTok, m_iPos);
++    int iEnd = ExtractVarToken(m_pParser->ValidNameChars(), strTok, m_iPos);
+     if (iEnd==m_iPos)
+       return false;
+ 
+@@ -809,7 +871,7 @@
+       return false;
+ 
+     string_type strTok;
+-    int iEnd = ExtractToken(m_pParser->ValidNameChars(), strTok, m_iPos);
++    int iEnd = ExtractVarToken(m_pParser->ValidNameChars(), strTok, m_iPos);
+     if (iEnd==m_iPos)
+       return false;
+ 
+@@ -841,7 +903,7 @@
+   bool ParserTokenReader::IsUndefVarTok(token_type &a_Tok)
+   {
+     string_type strTok;
+-    int iEnd( ExtractToken(m_pParser->ValidNameChars(), strTok, m_iPos) );
++    int iEnd( ExtractVarToken(m_pParser->ValidNameChars(), strTok, m_iPos) );
+     if ( iEnd==m_iPos )
+       return false;
+ 
+@@ -953,3 +1015,4 @@
+   }
+ } // namespace mu
+ 
++
