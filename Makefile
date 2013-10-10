@@ -1,13 +1,24 @@
+include ../../../rules/base.mk
 
 
+NAME=muparser
+VERSION=2.2.4
+SRC_FILE=${NAME}-${VERSION}.tgz
 
-all: checkout-muparser patch
+all: checkout-muparser build-muparser copy
 	
 
 checkout-muparser:
-	if [ ! -e muparser-read-only ]; \
-		svn checkout http://muparser.googlecode.com/svn/trunk muparser-read-only; \
+	if [ ! -e ${NAME} ]; then\
+		svn checkout http://muparser.googlecode.com/svn/trunk ${NAME}; \
 	fi
 
-patch:
-	cd muparser-read-only && patch -p0 < ../muparser-utf8.patch
+build-muparser:
+	cp -r ${NAME} ${NAME}-${VERSION}
+	tar -czf ${SRC_FILE} ${NAME}-${VERSION}
+	cp ${SRC_FILE} ${RPMBUILD_ROOT}/SOURCES/
+	cp muparser-utf8.patch ${RPMBUILD_ROOT}/SOURCES/
+	${RPMBUILD_SPEC} ${NAME}.spec
+
+copy:
+	cp ${RPMBUILD_ROOT}/RPMS/${ARCH}/*${NAME}*${VERSION}*.rpm .
