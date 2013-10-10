@@ -22,3 +22,13 @@ build-muparser:
 
 copy:
 	cp ${RPMBUILD_ROOT}/RPMS/${ARCH}/*${NAME}*${VERSION}*.rpm .
+
+build-ext:
+	cp -r php-${NAME} php-${NAME}-${VERSION}
+	tar -czf php-${NAME}-${VERSION}.tgz php-${NAME}-${VERSION}
+	cp php-${NAME}-${VERSION}.tgz ${RPMBUILD_ROOT}/SOURCES/
+	${RPMBUILD_SPEC} php-${NAME}.spec
+
+copy-ext:
+	cp ${RPMBUILD_ROOT}/RPMS/${ARCH}/php-${NAME}*${VERSION}*.rpm .
+	
