@@ -1019,7 +1019,18 @@ PHP_METHOD(parser_base, GetExpr) {
     RETURN_STRINGL(ret.c_str(), ret.size(), 1);
 }
 PHP_METHOD(parser_base, GetFunDef) {
-    // TODO
+    MUP_CHECK_PARAM(0, 0);
+
+    ParserBase * _self = NULL;
+    MUP_GET_OBJ(ParserBase, _self);
+
+    funmap_type ret = _self->GetFunDef();
+
+    array_init(return_value);
+
+    for(funmap_type::iterator i = ret.begin(); i != ret.end(); i ++) {
+        add_next_index_string(return_value, i->first.c_str(), 1);
+    }
 }
 PHP_METHOD(parser_base, GetVersion) {
     int argc = ZEND_NUM_ARGS();
