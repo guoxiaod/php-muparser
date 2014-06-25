@@ -1,4 +1,4 @@
-include ../../../rules/base.mk
+include ../../mklibs/rules/base.mk
 
 
 NAME=muparser
