@@ -22,7 +22,7 @@ muparser php extension
             "b" => 2,
             "c" => 3
             );
-    $parser->DefineVars($arr);
+    $parser->DefineVar($arr);
 
     $parser->SetExpr("a=b+c,b=a+c,c=a+b");
 
