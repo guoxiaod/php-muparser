@@ -12,6 +12,7 @@ namespace mu {
             void ClearVar();
             void RemoveVar(const string_type &a_strVarName);
             void UpdateVar(const string_type &a_sName, value_type a_Var);
+            void DefineVar(const string_type &a_sName, value_type *a_pVar);
             ~PhpParser();
         protected:
             // Trigonometric functions^M

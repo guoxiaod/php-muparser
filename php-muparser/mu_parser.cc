@@ -88,6 +88,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_UpdateVar, 0, 0, 2)
     ZEND_ARG_INFO(0, a_sName)
     ZEND_ARG_INFO(0, a_Var)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_parser_DefineVar, 0, 0, 1)
+    ZEND_ARG_INFO(0, a_sName)
+    ZEND_ARG_INFO(0, a_fVal)
+ZEND_END_ARG_INFO()
 /** }}} **/
 
 
@@ -383,6 +388,53 @@ PHP_METHOD(parser, UpdateVar) {
     _self->UpdateVar(key, val);
     MUP_CATCH_AND_END_TRY
 }
+
+/** {{{ **/
+PHP_METHOD(parser, DefineVar) {
+    int argc = ZEND_NUM_ARGS();
+    
+    zval * key = NULL;
+    value_type val = 0;
+
+    if(zend_parse_parameters(argc TSRMLS_CC, "z/|d", &key, &val) == FAILURE) {
+        WRONG_PARAM_COUNT;
+    }
+
+    PhpParser * _self = NULL;
+    MUP_GET_OBJ(PhpParser, _self);
+
+    char * _key = NULL;
+    zval ** _val = NULL;
+    // the first parameter is array
+    if(Z_TYPE_P(key) == IS_ARRAY && argc == 1) {
+        HashPosition pos;
+        HashTable * kv = Z_ARRVAL_P(key);
+        MUP_TRY
+            //double * arr = (double *) emalloc(sizeof(double) * zend_hash_num_elements(kv));
+            for(zend_hash_internal_pointer_reset_ex(kv, &pos);
+                zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
+                    zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
+                zend_hash_move_forward_ex(kv, &pos)) {
+
+                convert_to_double_ex(_val);
+                double * n = (double *) emalloc(sizeof(double));
+                *n = Z_DVAL_PP(_val);
+
+                _self->DefineVar(_key, n);
+            }
+        MUP_CATCH_AND_END_TRY
+    // if first parameter is string
+    } else if (Z_TYPE_P(key) == IS_STRING && argc == 2) {
+        MUP_TRY
+            double *n = (double *) emalloc(sizeof(double));
+            *n = val;
+            _self->DefineVar(Z_STRVAL_P(key), n);
+        MUP_CATCH_AND_END_TRY
+    } else {
+        WRONG_PARAM_COUNT;
+    }
+}
+/** }}} **/
 /** }}} **/
 
 /** mu\ParserBase **/
@@ -789,6 +841,8 @@ PHP_METHOD(parser_base, DefineStrConst) {
 
 /** {{{ **/
 PHP_METHOD(parser_base, DefineVar) {
+    php_error(E_ERROR, "not implement");
+    /*
     int argc = ZEND_NUM_ARGS();
     
     zval * key = NULL;
@@ -818,7 +872,6 @@ PHP_METHOD(parser_base, DefineVar) {
                 double * n = (double *) emalloc(sizeof(double));
                 *n = Z_DVAL_PP(_val);
 
-                _self->RemoveVar(_key);
                 _self->DefineVar(_key, n);
             }
         MUP_CATCH_AND_END_TRY
@@ -827,12 +880,12 @@ PHP_METHOD(parser_base, DefineVar) {
         MUP_TRY
             double *n = (double *) emalloc(sizeof(double));
             *n = val;
-            _self->RemoveVar(Z_STRVAL_P(key));
             _self->DefineVar(Z_STRVAL_P(key), n);
         MUP_CATCH_AND_END_TRY
     } else {
         WRONG_PARAM_COUNT;
     }
+    */
 }
 /** }}} **/
 
@@ -1198,6 +1251,7 @@ zend_function_entry mu_parser_methods [] = {
 //    MUP_ME(parser, Diff,  ZEND_ACC_PUBLIC)
     MUP_ME(parser, RemoveVar,  ZEND_ACC_PUBLIC)
     MUP_ME(parser, ClearVar,  ZEND_ACC_PUBLIC)
+    MUP_ME(parser, DefineVar,  ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

@@ -23,6 +23,7 @@ void PhpParser::ClearVar() {
     varmap_type m = GetVar();
     for(varmap_type::iterator i = m.begin(); i != m.end(); i++) {
         efree((double *) i->second);
+        i->second = NULL;
     }
     Parser::ClearVar();
 }
@@ -31,10 +32,17 @@ void PhpParser::RemoveVar(const string_type &a_strVarName){
     varmap_type m = GetVar();
     varmap_type::iterator item = m.find(a_strVarName);
     if (item != m.end()) {    
-        Parser::RemoveVar(a_strVarName);
         efree((double*) item->second);
+        item->second = NULL;
+        Parser::RemoveVar(a_strVarName);
     } 
 }
+
+void PhpParser::DefineVar(const string_type &a_sName, value_type *a_pVar) {
+    RemoveVar(a_sName);
+    Parser::DefineVar(a_sName, a_pVar);
+}
+
 
 PhpParser::~PhpParser() {
    ClearVar(); 
