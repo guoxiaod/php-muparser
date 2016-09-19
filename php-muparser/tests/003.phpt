@@ -2,6 +2,10 @@
 muparser test define var
 --FILE--
 <?php 
+
+ini_set("precision", "13");
+ini_set("serialize_precision", "13");
+
 $t = new mu\Parser();
 $t->DefineVar("H", 923.1);
 $t->DefineVar("Y", 235.2);
@@ -48,7 +52,7 @@ array (
   0 => 1158.3,
   1 => 687.9,
   2 => 217113.12,
-  3 => 3.9247448979592,
+  3 => 3.924744897959,
 )
 
 array (
@@ -57,5 +61,5 @@ array (
   'a' => 1158.3,
   'b' => 687.9,
   'c' => 217113.12,
-  'd' => 3.9247448979592,
+  'd' => 3.924744897959,
 )

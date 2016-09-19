@@ -21,7 +21,7 @@ Name:           muparser
 Summary:        A math parser library
 License:        MIT
 Group:          Productivity/Scientific/Math
-Version:        2.2.4
+Version:        2.2.5
 Release:        0
 Url:            http://muparser.beltoforion.de/
 

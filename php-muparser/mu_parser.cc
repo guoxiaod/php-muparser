@@ -818,6 +818,7 @@ PHP_METHOD(parser_base, DefineVar) {
                 double * n = (double *) emalloc(sizeof(double));
                 *n = Z_DVAL_PP(_val);
 
+                _self->RemoveVar(_key);
                 _self->DefineVar(_key, n);
             }
         MUP_CATCH_AND_END_TRY
@@ -826,6 +827,7 @@ PHP_METHOD(parser_base, DefineVar) {
         MUP_TRY
             double *n = (double *) emalloc(sizeof(double));
             *n = val;
+            _self->RemoveVar(Z_STRVAL_P(key));
             _self->DefineVar(Z_STRVAL_P(key), n);
         MUP_CATCH_AND_END_TRY
     } else {
