@@ -1,8 +1,8 @@
-include ../../mklibs/rules/base.mk
+include base.mk
 
 
 NAME=muparser
-VERSION=2.2.4
+VERSION=2.2.5
 SRC_FILE=${NAME}-${VERSION}.tgz
 
 all: checkout-muparser build-muparser copy
@@ -10,7 +10,7 @@ all: checkout-muparser build-muparser copy
 
 checkout-muparser:
 	if [ ! -e ${NAME} ]; then\
-		svn checkout http://muparser.googlecode.com/svn/trunk ${NAME}; \
+		git clone https://github.com/beltoforion/muparser.git ${NAME}; \
 	fi
 
 build-muparser:

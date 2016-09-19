@@ -3,7 +3,6 @@ muparser test define var
 --FILE--
 <?php 
 
-
 ini_set("precision", "13");
 ini_set("serialize_precision", "13");
 
