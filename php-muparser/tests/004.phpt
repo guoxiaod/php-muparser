@@ -4,6 +4,9 @@ muparser test clear var
 <?php 
 
 
+ini_set("precision", "13");
+ini_set("serialize_precision", "13");
+
 $t = new mu\Parser();
 
 // first define
@@ -118,10 +121,10 @@ define again:
 array (
   'H' => 923.1,
   'Y' => 235.2,
-  'a' => 0,
-  'b' => 0,
-  'c' => 0,
-  'd' => 0,
+  'a' => 0.0,
+  'b' => 0.0,
+  'c' => 0.0,
+  'd' => 0.0,
 )
 
 clear again:
@@ -132,13 +135,13 @@ redefine:
 array (
   'H' => 923.1,
   'Y' => 235.2,
-  'a' => 0,
-  'b' => 0,
-  'c' => 0,
-  'd' => 0,
+  'a' => 0.0,
+  'b' => 0.0,
+  'c' => 0.0,
+  'd' => 0.0,
 )
 
-3.9247448979592
+3.924744897959
 
 after compute:
 array (
@@ -147,7 +150,7 @@ array (
   'a' => 1158.3,
   'b' => 687.9,
   'c' => 217113.12,
-  'd' => 3.9247448979592,
+  'd' => 3.924744897959,
 )
 
 clear:

@@ -26,9 +26,10 @@
 #define MUP_ME(name, method, flag) \
     PHP_ME(name, method, MUP_CONCAT(arginfo_##name, _##method), flag)
 
+
 typedef struct _mu_wrapper {
-    zend_object obj;
     void * ptr;
+    zend_object obj;
 } mu_wrapper;
 
 typedef struct _mu_callback {
@@ -39,5 +40,12 @@ typedef struct _mu_callback {
 mu_wrapper * mup_create_wrapper(zend_class_entry * ce TSRMLS_DC);
 
 void * mup_extract_wrapper(zval * z TSRMLS_DC);
+
+static inline mu_wrapper *php_mu_wrapper_from_obj(zend_object *obj) {
+    return (mu_wrapper*)((char*)(obj) - XtOffsetOf(mu_wrapper, obj));
+}
+
+#define Z_USEROBJ_P(zv)  php_mu_wrapper_from_obj(Z_OBJ_P((zv)))
+
 
 #endif

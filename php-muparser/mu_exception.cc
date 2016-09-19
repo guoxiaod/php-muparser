@@ -64,28 +64,32 @@ PHP_METHOD(exception, __destruct) { }
 PHP_METHOD(exception, GetExpr) {
     MUP_CHECK_PARAM(0, 0);
 
-    zval * expr =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("_expr"), 0 TSRMLS_CC);
+    zval * rv = NULL;
+    zval * expr =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("_expr"), 0, rv);
 
     RETURN_ZVAL(expr, 1, 0);
 }
 PHP_METHOD(exception, GetMsg) {
     MUP_CHECK_PARAM(0, 0);
 
-    zval * msg =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("message"), 0 TSRMLS_CC);
+    zval * rv = NULL;
+    zval * msg =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("message"), 0, rv);
 
     RETURN_ZVAL(msg, 1, 0);
 }
 PHP_METHOD(exception, GetPos) {
     MUP_CHECK_PARAM(0, 0);
 
-    zval * pos =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("_pos"), 0 TSRMLS_CC);
+    zval * rv = NULL;
+    zval * pos =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("_pos"), 0, rv);
 
     RETURN_ZVAL(pos, 1, 0);
 }
 PHP_METHOD(exception, GetToken) {
     MUP_CHECK_PARAM(0, 0);
 
-    zval * token =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("_token"), 0 TSRMLS_CC);
+    zval * rv = NULL;
+    zval * token =  zend_read_property(mu_exception_ce, getThis(), ZEND_STRL("_token"), 0, rv);
 
     RETURN_ZVAL(token, 1, 0);
 }
@@ -152,7 +156,7 @@ MUPARSER_STARTUP_FUNCTION(exception) {
 
     zend_class_entry ce;
     INIT_NS_CLASS_ENTRY(ce, "mu", "ParserException", mu_exception_methods);
-    mu_exception_ce = zend_register_internal_class_ex(&ce, zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC);
+    mu_exception_ce = zend_register_internal_class_ex(&ce, zend_exception_get_default(TSRMLS_C));
     /*
     memcpy(&_mu_exception_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
     _mu_exception_handlers.clone_obj = NULL;

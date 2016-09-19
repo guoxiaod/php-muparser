@@ -18,8 +18,8 @@ static zend_class_entry * mu_parser_base_ce = NULL;
 
 static zend_object_handlers _mu_parser_handlers;
 
-static void mup_destroy_mu_parser_object(void * p TSRMLS_DC) {
-    mu_wrapper * wrapper = static_cast<mu_wrapper *> (p);
+static void mup_destroy_mu_parser_object(zend_object * object) {
+    mu_wrapper * wrapper = php_mu_wrapper_from_obj(object);
     PhpParser * ptr = static_cast<PhpParser*> (wrapper->ptr);
     if(ptr != NULL) {
         delete ptr;
@@ -30,19 +30,16 @@ static void mup_destroy_mu_parser_object(void * p TSRMLS_DC) {
     wrapper = NULL;
 }
 
-static zend_object_value mup_create_mu_parser_object(zend_class_entry * ce TSRMLS_DC) {
-    zend_object_value result;
-
+static zend_object * mup_create_mu_parser_object(zend_class_entry * ce TSRMLS_DC) {
     mu_wrapper * wrapper = mup_create_wrapper(ce);
 
     MUP_TRY
         wrapper->ptr = new PhpParser();
     MUP_CATCH_AND_END_TRY
 
-    result.handle = zend_objects_store_put(&wrapper->obj, NULL, (zend_objects_free_object_storage_t) mup_destroy_mu_parser_object, NULL TSRMLS_CC);
-    result.handlers = &_mu_parser_handlers;
+    wrapper->obj.handlers = &_mu_parser_handlers;
     
-    return result;
+    return &wrapper->obj;
 }
 
 /** mu\Parser arguments info {{{ **/
@@ -332,7 +329,7 @@ PHP_METHOD(parser, Diff) {
     MUP_GET_OBJ(PhpParser, _self);
 
     if(Z_TYPE_P(a_Var) != IS_DOUBLE) {
-        convert_to_double_ex(&a_Var);
+        convert_to_double_ex(a_Var);
     }
 
     value_type ret = _self->Diff(&Z_DVAL_P(a_Var), a_fPos, a_fEpsilon);
@@ -343,17 +340,16 @@ PHP_METHOD(parser, Diff) {
 PHP_METHOD(parser, RemoveVar) {
     int argc = ZEND_NUM_ARGS();
     
-    int a_sName_len = 0;
-    char * a_sName;
+    zend_string * sName;
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &a_sName, & a_sName_len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &sName) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     PhpParser * _self = NULL;
     MUP_GET_OBJ(PhpParser, _self);
 
-    _self->RemoveVar(a_sName);
+    _self->RemoveVar(ZSTR_VAL(sName));
 }
 
 PHP_METHOD(parser, ClearVar) {
@@ -369,10 +365,10 @@ PHP_METHOD(parser, UpdateVar) {
     int argc = ZEND_NUM_ARGS();
 
     int key_len = 0;
-    char * key;
+    zend_string * key;
     value_type val = 0.0;
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "sd", &key, &key_len, &val) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "Sd", &key, &val) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
@@ -380,7 +376,7 @@ PHP_METHOD(parser, UpdateVar) {
     MUP_GET_OBJ(PhpParser, _self);
 
     MUP_TRY
-    _self->UpdateVar(key, val);
+    _self->UpdateVar(ZSTR_VAL(key), val);
     MUP_CATCH_AND_END_TRY
 }
 /** }}} **/
@@ -424,7 +420,7 @@ PHP_METHOD(parser_base, Eval) {
 
         // force to long 
         if(Z_TYPE_P(nStackSize) != IS_LONG) {
-            convert_to_long_ex(&nStackSize);
+            convert_to_long_ex(nStackSize);
         }
 
         int n = Z_LVAL_P(nStackSize);
@@ -497,10 +493,9 @@ PHP_METHOD(parser_base, GetNumResults) {
 PHP_METHOD(parser_base, SetExpr) { 
     int argc = ZEND_NUM_ARGS();
 
-    int sLen = 0;
-    char * sExpr = NULL;
+    zend_string * sExpr = NULL;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &sExpr, &sLen) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &sExpr) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
@@ -508,7 +503,7 @@ PHP_METHOD(parser_base, SetExpr) {
     MUP_GET_OBJ(ParserBase, _self);
 
     MUP_TRY
-    _self->SetExpr(sExpr);
+    _self->SetExpr(ZSTR_VAL(sExpr));
     MUP_CATCH_AND_END_TRY
 } 
 PHP_METHOD(parser_base, SetVarFactory) {
@@ -534,32 +529,30 @@ PHP_METHOD(parser_base, SetVarFactory) {
 PHP_METHOD(parser_base, SetDecSep) { 
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char_type* cDecSep;
+    zend_string * cDecSep;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, const_cast<char*>("s"), &cDecSep, &len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &cDecSep) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->SetDecSep(* cDecSep);
+    _self->SetDecSep(* ZSTR_VAL(cDecSep));
 } 
 PHP_METHOD(parser_base, SetThousandsSep) {
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char_type * cThousandsSep;
+    zend_string * cThousandsSep;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &cThousandsSep, &len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &cThousandsSep) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->SetThousandsSep(*cThousandsSep);
+    _self->SetThousandsSep(*ZSTR_VAL(cThousandsSep));
 }
 PHP_METHOD(parser_base, ResetLocale) {
     MUP_CHECK_PARAM(0, 0);
@@ -635,14 +628,13 @@ PHP_METHOD(parser_base, AddValIdent) {
 PHP_METHOD(parser_base, DefineFun) {
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char * a_strName;
+    zend_string * a_strName;
     zend_bool a_bAllowOpt;
 
     zend_fcall_info fci;
     zend_fcall_info_cache fci_cache;
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "sfb", &a_strName, &len, &fci, &fci_cache, &a_bAllowOpt) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "sfb", &a_strName, &fci, &fci_cache, &a_bAllowOpt) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
@@ -662,8 +654,7 @@ PHP_METHOD(parser_base, DefineFun) {
 PHP_METHOD(parser_base, DefineOprt) {
     int argc = ZEND_NUM_ARGS();
     
-    int a_sName_len = 0;
-    char * a_sName;
+    zend_string * a_sName;
     zend_fcall_info fci;
     zend_fcall_info_cache fci_cache;
     long a_iPrec;
@@ -671,7 +662,7 @@ PHP_METHOD(parser_base, DefineOprt) {
     zend_bool a_bAllowOpt;
 
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "sfllb", &a_sName, & a_sName_len, 
+    if(zend_parse_parameters(argc TSRMLS_CC, "Sfllb", &a_sName,
             &fci, &fci_cache, &a_iPrec, &a_eAssoc, &a_bAllowOpt) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
@@ -684,7 +675,7 @@ PHP_METHOD(parser_base, DefineOprt) {
     fun_type2 func = NULL;
 
     MUP_TRY
-    _self->DefineOprt(a_sName, func, a_iPrec, (EOprtAssociativity) a_eAssoc, a_bAllowOpt);
+    _self->DefineOprt(ZSTR_VAL(a_sName), func, a_iPrec, (EOprtAssociativity) a_eAssoc, a_bAllowOpt);
     MUP_CATCH_AND_END_TRY
 }
 
@@ -705,22 +696,19 @@ PHP_METHOD(parser_base, DefineConst) {
     HashPosition pos;
     HashTable * kv;
 
-    char * _key = NULL;
-    zval ** _val = NULL;
+    zval * v = NULL;
+    zend_string * k = NULL;
+            
 
     MUP_TRY
     switch(Z_TYPE_P(key)) {
         case IS_ARRAY:
             kv = Z_ARRVAL_P(key);
-            for(zend_hash_internal_pointer_reset_ex(kv, &pos);
-                zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
-                    zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
-                zend_hash_move_backwards_ex(kv, &pos)) {
 
-                convert_to_double_ex(_val);
-
-                _self->DefineConst(_key, Z_DVAL_PP(_val));
-            }
+            ZEND_HASH_FOREACH_STR_KEY_VAL(kv, k, v) {
+                convert_to_double_ex(v);
+                _self->DefineConst(ZSTR_VAL(k), Z_DVAL_P(v));
+            } ZEND_HASH_FOREACH_END();
             break;
         case IS_STRING:
             if(argc == 2) {
@@ -753,27 +741,22 @@ PHP_METHOD(parser_base, DefineStrConst) {
     HashPosition pos;
     HashTable * kv;
 
-    char * _key = NULL;
-    zval ** _val = NULL;
-
     MUP_TRY
     switch(Z_TYPE_P(key)) {
         case IS_ARRAY:
             kv = Z_ARRVAL_P(key);
 
-            for(zend_hash_internal_pointer_reset_ex(kv, &pos);
-                zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
-                    zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
-                zend_hash_move_backwards_ex(kv, &pos)) {
+            zval * v;
+            zend_string * k;
+            ZEND_HASH_FOREACH_STR_KEY_VAL(kv, k, v) {
+                convert_to_string_ex(v);
 
-                convert_to_string_ex(_val);
-
-                _self->DefineStrConst(_key, Z_STRVAL_PP(_val));
-            }
+                _self->DefineStrConst(ZSTR_VAL(k), Z_STRVAL_P(v));
+            } ZEND_HASH_FOREACH_END();
             break;
         case IS_STRING:
             if(argc == 2) {
-                convert_to_string_ex(&val);
+                convert_to_string_ex(val);
                 _self->DefineStrConst(Z_STRVAL_P(key), Z_STRVAL_P(val));
             } else {
                 WRONG_PARAM_COUNT;
@@ -801,25 +784,25 @@ PHP_METHOD(parser_base, DefineVar) {
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    char * _key = NULL;
-    zval ** _val = NULL;
     // the first parameter is array
     if(Z_TYPE_P(key) == IS_ARRAY && argc == 1) {
         HashPosition pos;
         HashTable * kv = Z_ARRVAL_P(key);
+
+
+        zval * v = NULL;
+        zend_string * k = NULL;
         MUP_TRY
             //double * arr = (double *) emalloc(sizeof(double) * zend_hash_num_elements(kv));
-            for(zend_hash_internal_pointer_reset_ex(kv, &pos);
-                zend_hash_get_current_key_ex(kv, &_key, NULL, NULL, 0, &pos) != FAILURE &&
-                    zend_hash_get_current_data_ex(kv, (void **) &_val, &pos) != FAILURE; 
-                zend_hash_move_forward_ex(kv, &pos)) {
+            
+            ZEND_HASH_FOREACH_STR_KEY_VAL(kv, k, v) {
+                convert_to_double_ex(v);
 
-                convert_to_double_ex(_val);
                 double * n = (double *) emalloc(sizeof(double));
-                *n = Z_DVAL_PP(_val);
+                *n = Z_DVAL_P(v);
 
-                _self->DefineVar(_key, n);
-            }
+                _self->DefineVar(ZSTR_VAL(k), n);
+            } ZEND_HASH_FOREACH_END();
         MUP_CATCH_AND_END_TRY
     // if first parameter is string
     } else if (Z_TYPE_P(key) == IS_STRING && argc == 2) {
@@ -838,8 +821,7 @@ PHP_METHOD(parser_base, DefineVar) {
 PHP_METHOD(parser_base, DefinePostfixOprt) {
     int argc = ZEND_NUM_ARGS();
     
-    int a_sName_len = 0;
-    char * a_sName;
+    zend_string * a_sName;
 
     zend_fcall_info fci;
     zend_fcall_info_cache fci_cache;
@@ -847,7 +829,7 @@ PHP_METHOD(parser_base, DefinePostfixOprt) {
     zend_bool a_bAllowOpt;
 
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "sfb", &a_sName, & a_sName_len, 
+    if(zend_parse_parameters(argc TSRMLS_CC, "Sfb", &a_sName,
             &fci, &fci_cache, &a_bAllowOpt) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
@@ -860,15 +842,14 @@ PHP_METHOD(parser_base, DefinePostfixOprt) {
     fun_type1 func = NULL;
 
     MUP_TRY
-    _self->DefinePostfixOprt(a_sName, func, a_bAllowOpt);
+    _self->DefinePostfixOprt(ZSTR_VAL(a_sName), func, a_bAllowOpt);
     MUP_CATCH_AND_END_TRY
 }
 /** }}} **/
 PHP_METHOD(parser_base, DefineInfixOprt) {
     int argc = ZEND_NUM_ARGS();
     
-    int a_sName_len = 0;
-    char * a_sName;
+    zend_string * a_sName;
 
     zend_fcall_info fci;
     zend_fcall_info_cache fci_cache;
@@ -877,7 +858,7 @@ PHP_METHOD(parser_base, DefineInfixOprt) {
     zend_bool a_bAllowOpt;
 
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "sflb", &a_sName, & a_sName_len, 
+    if(zend_parse_parameters(argc TSRMLS_CC, "Sflb", &a_sName,
             &fci, &fci_cache, &a_iPrec, &a_bAllowOpt) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
@@ -890,7 +871,7 @@ PHP_METHOD(parser_base, DefineInfixOprt) {
     fun_type1 func = NULL;
 
     MUP_TRY
-    _self->DefineInfixOprt(a_sName, func, a_iPrec, a_bAllowOpt);
+    _self->DefineInfixOprt(ZSTR_VAL(a_sName), func, a_iPrec, a_bAllowOpt);
     MUP_CATCH_AND_END_TRY
 }
 
@@ -946,17 +927,16 @@ PHP_METHOD(parser_base, ClearOprt) {
 PHP_METHOD(parser_base, RemoveVar) {
     int argc = ZEND_NUM_ARGS();
     
-    int a_sName_len = 0;
-    char * a_sName;
+    zend_string * a_sName;
 
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &a_sName, & a_sName_len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &a_sName) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->RemoveVar(a_sName);
+    _self->RemoveVar(ZSTR_VAL(a_sName));
 }
 PHP_METHOD(parser_base, GetUsedVar) {
     MUP_CHECK_PARAM(0, 0);
@@ -1016,7 +996,7 @@ PHP_METHOD(parser_base, GetExpr) {
 
     string_type ret = _self->GetExpr();
 
-    RETURN_STRINGL(ret.c_str(), ret.size(), 1);
+    RETURN_STRINGL(ret.c_str(), ret.size());
 }
 PHP_METHOD(parser_base, GetFunDef) {
     MUP_CHECK_PARAM(0, 0);
@@ -1029,7 +1009,7 @@ PHP_METHOD(parser_base, GetFunDef) {
     array_init(return_value);
 
     for(funmap_type::iterator i = ret.begin(); i != ret.end(); i ++) {
-        add_next_index_string(return_value, i->first.c_str(), 1);
+        add_next_index_string(return_value, i->first.c_str());
     }
 }
 PHP_METHOD(parser_base, GetVersion) {
@@ -1047,7 +1027,7 @@ PHP_METHOD(parser_base, GetVersion) {
 
     string_type ret = _self->GetVersion((EParserVersionInfo)eInfo);
 
-    RETURN_STRINGL(ret.c_str(), ret.size(), 1);
+    RETURN_STRINGL(ret.c_str(), ret.size());
 }
 
 PHP_METHOD(parser_base, GetOprtDef) {
@@ -1060,54 +1040,51 @@ PHP_METHOD(parser_base, GetOprtDef) {
     const char_type **ret = _self->GetOprtDef();
 
     //TODO 
-    //RETURN_STRINGL(ret, strlen(ret), 1);
+    //RETURN_STRINGL(ret, strlen(ret));
 }
 
 PHP_METHOD(parser_base, DefineNameChars) {
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char * szCharset = NULL;
+    zend_string * szCharset = NULL;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &szCharset, &len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &szCharset) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->DefineNameChars(szCharset);
+    _self->DefineNameChars(ZSTR_VAL(szCharset));
 }
 
 PHP_METHOD(parser_base, DefineOprtChars) {
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char * szCharset = NULL;
+    zend_string * szCharset = NULL;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &szCharset, &len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &szCharset) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->DefineOprtChars(szCharset);
+    _self->DefineOprtChars(ZSTR_VAL(szCharset));
 }
 PHP_METHOD(parser_base, DefineInfixOprtChars) {
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char * szCharset = NULL;
+    zend_string * szCharset = NULL;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &szCharset, &len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &szCharset) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->DefineInfixOprtChars(szCharset);
+    _self->DefineInfixOprtChars(ZSTR_VAL(szCharset));
 }
 
 PHP_METHOD(parser_base, ValidNameChars) {
@@ -1117,7 +1094,7 @@ PHP_METHOD(parser_base, ValidNameChars) {
     MUP_GET_OBJ(ParserBase, _self);
 
     const char_type * ret = _self->ValidNameChars();
-    RETURN_STRINGL(ret, strlen(ret), 1);
+    RETURN_STRINGL(ret, strlen(ret));
 }
 
 PHP_METHOD(parser_base, ValidOprtChars) {
@@ -1127,7 +1104,7 @@ PHP_METHOD(parser_base, ValidOprtChars) {
     MUP_GET_OBJ(ParserBase, _self);
 
     const char_type * ret = _self->ValidOprtChars();
-    RETURN_STRINGL(ret, strlen(ret), 1);
+    RETURN_STRINGL(ret, strlen(ret));
 }
 PHP_METHOD(parser_base, ValidInfixOprtChars) {
     int argc = ZEND_NUM_ARGS();
@@ -1136,23 +1113,22 @@ PHP_METHOD(parser_base, ValidInfixOprtChars) {
     MUP_GET_OBJ(ParserBase, _self);
 
     const char_type * ret = _self->ValidInfixOprtChars();
-    RETURN_STRINGL(ret, strlen(ret), 1);
+    RETURN_STRINGL(ret, strlen(ret));
 }
 
 PHP_METHOD(parser_base, SetArgSep) {
     int argc = ZEND_NUM_ARGS();
 
-    int len = 0;
-    char_type * cArgSep = NULL;
+    zend_string * cArgSep = NULL;
     
-    if(zend_parse_parameters(argc TSRMLS_CC, "s", &cArgSep, &len) == FAILURE) {
+    if(zend_parse_parameters(argc TSRMLS_CC, "S", &cArgSep) == FAILURE) {
         WRONG_PARAM_COUNT;
     }
 
     ParserBase * _self = NULL;
     MUP_GET_OBJ(ParserBase, _self);
 
-    _self->SetArgSep(*cArgSep);
+    _self->SetArgSep(*ZSTR_VAL(cArgSep));
 }
 PHP_METHOD(parser_base, GetArgSep) {
     MUP_CHECK_PARAM(0, 0);
@@ -1162,7 +1138,7 @@ PHP_METHOD(parser_base, GetArgSep) {
 
     char_type ret = _self->GetArgSep();
 
-    RETURN_STRINGL(&ret, 1, 1);
+    RETURN_STRINGL(&ret, 1);
 }
 /*
 PHP_METHOD(parser_base, Error) {
@@ -1266,10 +1242,12 @@ MUPARSER_STARTUP_FUNCTION(parser) {
     //ce.create_object = mup_create_mu_parser_base_object<ParserBase>;
 
     INIT_CLASS_ENTRY(ce, "mu\\Parser", mu_parser_methods);
-    mu_parser_ce = zend_register_internal_class_ex(&ce, mu_parser_base_ce, NULL TSRMLS_CC);
+    mu_parser_ce = zend_register_internal_class_ex(&ce, mu_parser_base_ce);
     mu_parser_ce->create_object = mup_create_mu_parser_object;
     memcpy(&_mu_parser_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+    _mu_parser_handlers.offset = XtOffsetOf(mu_wrapper, obj);
     _mu_parser_handlers.clone_obj = NULL;
+    _mu_parser_handlers.free_obj = mup_destroy_mu_parser_object;
 
     return SUCCESS;
 }

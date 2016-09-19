@@ -5,9 +5,9 @@
 #include "util.h"
 
 mu_wrapper * mup_create_wrapper(zend_class_entry * ce TSRMLS_DC) {
-    zval * tmp;
-    mu_wrapper * wrapper = (mu_wrapper*) (emalloc(sizeof(mu_wrapper)));
-    memset(wrapper, 0, sizeof(mu_wrapper));
+    mu_wrapper * wrapper;
+
+    wrapper = (mu_wrapper*) ecalloc(1, sizeof(mu_wrapper) + zend_object_properties_size(ce));
 
     zend_object_std_init(&wrapper->obj, ce TSRMLS_CC);
 
@@ -24,7 +24,7 @@ void * mup_extract_wrapper(zval * z TSRMLS_DC) {
         return NULL;
     }
 
-    mu_wrapper* obj = (mu_wrapper*)(zend_object_store_get_object(z TSRMLS_CC));
+    mu_wrapper* obj = (mu_wrapper*) Z_USEROBJ_P(z);
     if(!obj) {
         char buffer[1024] = {0};
         snprintf(buffer, sizeof(buffer), "no object found in %s()", get_active_function_name(TSRMLS_C));

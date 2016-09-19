@@ -7,10 +7,12 @@
 
 #define MUP_THROW_EXCEPTION \
         { \
-            zval * _ex = zend_throw_exception(mu_exception_ce, (char*)e.GetMsg().c_str(), e.GetCode() TSRMLS_DC); \
-            zend_update_property_string(mu_exception_ce, _ex, ZEND_STRL("_expr"), e.GetExpr().c_str() TSRMLS_CC); \
-            zend_update_property_string(mu_exception_ce, _ex, ZEND_STRL("_token"), e.GetToken().c_str() TSRMLS_CC); \
-            zend_update_property_long(mu_exception_ce, _ex, ZEND_STRL("_pos"), e.GetPos() TSRMLS_CC); \
+            zval _ex; \
+            zend_object * obj = zend_throw_exception(mu_exception_ce, (char*)e.GetMsg().c_str(), e.GetCode() TSRMLS_DC); \
+            ZVAL_OBJ(&_ex, obj); \
+            zend_update_property_string(mu_exception_ce, &_ex, ZEND_STRL("_expr"), e.GetExpr().c_str() TSRMLS_CC); \
+            zend_update_property_string(mu_exception_ce, &_ex, ZEND_STRL("_token"), e.GetToken().c_str() TSRMLS_CC); \
+            zend_update_property_long(mu_exception_ce, &_ex, ZEND_STRL("_pos"), e.GetPos() TSRMLS_CC); \
         }
 
 #define MUP_CATCH_AND_END_TRY \
