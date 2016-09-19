@@ -22,7 +22,7 @@ end
 
 Summary: PECL package for muparser
 Name: %{peclname}
-Version: 2.2.4
+Version: 2.2.5
 Release: 1
 License: PHP
 Group: Development/Languages
