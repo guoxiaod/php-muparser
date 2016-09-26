@@ -23,14 +23,14 @@ end
 Summary: PECL package for muparser
 Name: %{peclname}
 Version: 2.2.5
-Release: 1
+Release: 2
 License: PHP
 Group: Development/Languages
 URL: http://pecl.php.net/package/%{name}
 Source: http://pecl.php.net/get/%{name}-%{version}.tgz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-Requires: php%{_dbg} > 5.4, libstdc++, libmuparser2
-BuildRequires: php%{_dbg}, php%{_dbg}-devel,libstdc++-devel,libtool, muparser-devel
+Requires: php%{_dbg}-common > 5.4, libstdc++, libmuparser2
+BuildRequires: php%{_dbg}-common, php%{_dbg}-devel,libstdc++-devel,libtool, muparser-devel
 # Required by phpize
 BuildRequires: autoconf, automake, libtool
 BuildArch: x86_64
@@ -72,5 +72,7 @@ EOF
 %{php_extdir}/muparser.so
 
 %changelog
+* Mon Sep 26 2016 - guoxiaodong<guoxiaodong@yongche.com> 2.2.5-2
+- remove php dep
 * Thu Oct 10 2013 Anders <gxd305@gmail.com> 2.2.4
 - init version
